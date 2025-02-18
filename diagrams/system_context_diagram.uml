@@ -1,0 +1,39 @@
+@startuml SystemContextDiagram
+
+title System Context Diagram
+
+left to right direction
+
+actor "사용자" as User
+actor "개발자" as Developer
+actor "운영자" as Operator
+actor "정부 AI 규제기관" as Regulator
+actor "결제 대행사" as PaymentProvider
+actor "광고 플랫폼" as AdPlatform
+actor "CSP (클라우드 서비스 제공자)" as CloudProvider
+
+rectangle "LVC 시스템" {
+}
+
+User <-- "LVC 시스템" : "비디오 챗"
+User --> "LVC 시스템" : "비디오 챗 부가기능 설정"
+User <-- "LVC 시스템" : "프리미엄 기능 프로모션"
+User --> "LVC 시스템" : "프리미엄 기능 구독 및 구독 취소"
+User --> "LVC 시스템" : "VoC 및 평점 평가"
+
+Operator <-- "LVC 시스템" : "VoC 및 사용자 통계"
+Operator <-- "LVC 시스템" : "시스템 장애 알림"
+Operator --> "LVC 시스템" : "시스템 설정"
+Operator --> "LVC 시스템" : "악성 사용자 제제"
+
+Developer <-- "LVC 시스템" : "AI 모델 학습 데이터"
+Developer --> "LVC 시스템" : "AI 모델 업데이트"
+Developer --> "LVC 시스템" : "AI 모델 평가 자동화 설정"
+
+Regulator <-- "LVC 시스템" : "AI 모델 학습 데이터 정보"
+
+PaymentProvider --> "LVC 시스템" : "결제 서비스"
+AdPlatform --> "LVC 시스템" : "광고 서비스"
+CloudProvider --> "LVC 시스템" : "클라우드 호스팅 서비스"
+
+@enduml
