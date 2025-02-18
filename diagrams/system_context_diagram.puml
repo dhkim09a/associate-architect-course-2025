@@ -1,16 +1,35 @@
 @startuml SystemContextDiagram
-
 title System Context Diagram
-
 left to right direction
 
 actor "사용자" as User
+note right of User
+1...30만명
+end note
 actor "개발자" as Developer
+note right of Developer
+1...100명
+end note
 actor "운영자" as Operator
+note right of Operator
+1...100명
+end note
 actor "정부 AI 규제기관" as Regulator
+note right of Regulator
+1개
+end note
 actor "결제 대행사" as PaymentProvider
+note right of PaymentProvider
+1개
+end note
 actor "광고 플랫폼" as AdPlatform
-actor "CSP (클라우드 서비스 제공자)" as CloudProvider
+note right of AdPlatform
+1개
+end note
+actor "CSP" as CloudProvider
+note right of CloudProvider
+1개
+end note
 
 rectangle "LVC 시스템" {
 }
@@ -35,5 +54,4 @@ Regulator <-- "LVC 시스템" : "AI 모델 학습 데이터 정보"
 PaymentProvider --> "LVC 시스템" : "결제 서비스"
 AdPlatform --> "LVC 시스템" : "광고 서비스"
 CloudProvider --> "LVC 시스템" : "클라우드 호스팅 서비스"
-
 @enduml
