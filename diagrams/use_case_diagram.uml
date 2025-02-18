@@ -1,0 +1,73 @@
+@startuml
+
+skinparam wrapWidth 100
+left to right direction
+
+actor "사용자" as User
+actor "운영자" as Admin
+actor "개발자" as Developer
+actor "광고 플랫폼" as AdProvider
+actor "결제 대행사" as PayProvider
+actor "정부 AI 규제 기관" as Regulator
+
+package "LVC (시스템)" {
+    usecase "UC-01 프리미엄 기능 프로모션" as UC1
+    usecase "UC-02 광고 제공" as UC2
+    usecase "UC-03 회원가입 및 로그인" as UC3
+    usecase "UC-04 평점 및 VoC 등록" as UC4
+    usecase "UC-05 프리미엄 서비스 구독" as UC5
+    usecase "UC-06 프리미엄 서비스 구독 취소" as UC6
+    usecase "UC-07 친구 추가" as UC7
+    usecase "UC-08 친구 삭제" as UC8
+    usecase "UC-09 랜덤 비디오 챗 시작 요청" as UC9
+    usecase "UC-10 친구 비디오 챗 시작 요청" as UC10
+    usecase "UC-11 비디오 챗 종료 요청" as UC11
+    usecase "UC-12 사용자 차단" as UC12
+    usecase "UC-13 사용자 통계" as UC13
+    usecase "UC-14 VoC 브라우징" as UC14
+    usecase "UC-15 장애 알림" as UC15
+    usecase "UC-16 비디오 챗 시작" as UC16
+    usecase "UC-17 비디오 챗 종료" as UC17
+    usecase "UC-18 AI 모델 학습 데이터 프로파일 요청" as UC18
+    usecase "UC-19 비디오 챗 데이터 수집" as UC19
+    usecase "UC-20 AI 모델 업데이트" as UC20
+    usecase "UC-21 AI 모델 자동 평가" as UC21
+    usecase "UC-22 비디오 챗 부가기능 설정" as UC22
+
+    UC1 --> User
+    UC2 --> User
+    
+    User --> UC3
+    User --> UC4
+    User --> UC5
+    User --> UC6
+    User --> UC7
+    User --> UC8
+    User --> UC9
+    User --> UC10
+    User --> UC11
+    User --> UC22
+    
+    Admin --> UC12
+    Admin --> UC13
+    Admin --> UC14
+    Admin --> UC15
+
+    Regulator --> UC18
+
+    Developer --> UC19
+    Developer --> UC20
+    Developer --> UC21
+
+    UC5 --> PayProvider
+    UC6 --> PayProvider
+
+    UC2 --> AdProvider
+    
+    UC9 ..> UC16 : "<<include>>"
+    UC10 ..> UC16 : "<<include>>"
+    UC11 ..> UC17 : "<<include>>"
+    UC17 ..|> UC12 : "<<extend>>"
+}
+
+@enduml
