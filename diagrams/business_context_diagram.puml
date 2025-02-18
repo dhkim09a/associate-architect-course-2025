@@ -1,0 +1,25 @@
+@startuml BusinessContextDiagram
+title Business Context Diagram
+
+left to right direction
+
+actor "사용자" as User
+actor "개발자" as Developer
+actor "운영자" as Operator
+actor "정부 AI 규제기관" as Regulator
+actor "결제 대행사" as PaymentProvider
+actor "광고 플랫폼" as AdPlatform
+actor "CSP (클라우드 서비스 제공자)" as CloudProvider
+
+rectangle "LVC Company" {
+}
+
+User -- "LVC Company" : "비디오 챗 사용, 광고 시청 또는 프리미엄 서비스 사용료를 지불"
+Regulator -- "LVC Company" : "AI 윤리 감독"
+Developer -- "LVC Company" : "시스템 개발, LVC 기능 업데이트, AI 모델 개선"
+Operator -- "LVC Company" : "LVC 운용"
+AdPlatform -- "LVC Company" : "광고 제공"
+PaymentProvider -- "LVC Company" : "결제 기능 제공"
+CloudProvider -- "LVC Company" : "LVC 서비스 호스팅"
+
+@enduml
