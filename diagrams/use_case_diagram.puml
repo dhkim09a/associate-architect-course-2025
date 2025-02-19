@@ -34,6 +34,7 @@ package "LVC (시스템)" {
     usecase "UC-21 AI 모델 자동 평가" as UC21
     usecase "UC-22 비디오 챗 부가기능 설정" as UC22
 
+
     UC1 --> User
     UC2 --> User
     
@@ -48,16 +49,16 @@ package "LVC (시스템)" {
     User --> UC11
     User --> UC22
     
-    Admin -down-> UC12
-    Admin -down-> UC13
-    Admin -down-> UC14
-    Admin -down-> UC15
+    Admin -up-> UC12
+    Admin -up-> UC13
+    Admin -up-> UC14
+    Admin -up-> UC15
 
-    Regulator --up-> UC18
+    Regulator -up-> UC18
 
-    Developer --up-> UC19
-    Developer --up-> UC20
-    Developer --up-> UC21
+    Developer -up-> UC19
+    Developer -up-> UC20
+    Developer -up-> UC21
 
     UC5 --down-> PayProvider
     UC6 --down-> PayProvider
@@ -67,7 +68,16 @@ package "LVC (시스템)" {
     UC9 ..> UC16 : "<<include>>"
     UC10 ..> UC16 : "<<include>>"
     UC11 ..> UC17 : "<<include>>"
-    UC17 .up.|> UC12 : "<<extend>>"
+    UC17 .|> UC12 : "<<extend>>"
+    
+    UC1 -[hidden]- UC12
+    UC1 -[hidden]- UC13
+    UC1 -[hidden]- UC14
+    UC1 -[hidden]- UC15
+    UC1 -[hidden]- UC18
+    UC1 -[hidden]- UC19
+    UC1 -[hidden]- UC20
+    UC1 -[hidden]- UC21
 }
 
 @enduml
