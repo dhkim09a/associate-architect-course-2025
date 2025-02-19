@@ -45,13 +45,13 @@ Operator <-- "LVC 시스템" : "시스템 장애 알림"
 Operator --> "LVC 시스템" : "시스템 설정"
 Operator --> "LVC 시스템" : "악성 사용자 제제"
 
-Developer <-- "LVC 시스템" : "AI 모델 학습 데이터"
-Developer --> "LVC 시스템" : "AI 모델 업데이트"
-Developer --> "LVC 시스템" : "AI 모델 평가 자동화 설정"
+Developer <-up- "LVC 시스템" : "AI 모델 학습 데이터"
+Developer -up-> "LVC 시스템" : "AI 모델 업데이트"
+Developer -up-> "LVC 시스템" : "AI 모델 평가 자동화 설정"
 
-Regulator <-- "LVC 시스템" : "AI 모델 학습 데이터 정보"
+Regulator <-up- "LVC 시스템" : "AI 모델 학습 데이터 정보"
 
-PaymentProvider --> "LVC 시스템" : "결제 서비스"
-AdPlatform --> "LVC 시스템" : "광고 서비스"
-CloudProvider --> "LVC 시스템" : "클라우드 호스팅 서비스"
+PaymentProvider -up-> "LVC 시스템" : "결제 서비스"
+AdPlatform -up-> "LVC 시스템" : "광고 서비스"
+CloudProvider -up-> "LVC 시스템" : "클라우드 호스팅 서비스"
 @enduml
