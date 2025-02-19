@@ -68,16 +68,20 @@ package "LVC (시스템)" {
     UC9 ..> UC16 : "<<include>>"
     UC10 ..> UC16 : "<<include>>"
     UC11 ..> UC17 : "<<include>>"
-    UC17 .|> UC12 : "<<extend>>"
+    UC17 .> UC12 : "<<extend>>"
     
-    UC1 -[hidden]- UC12
-    UC1 -[hidden]- UC13
-    UC1 -[hidden]- UC14
-    UC1 -[hidden]- UC15
-    UC1 -[hidden]- UC18
-    UC1 -[hidden]- UC19
-    UC1 -[hidden]- UC20
-    UC1 -[hidden]- UC21
+    UC11 -[hidden] UC10
+    UC10 -[hidden] UC9
+
+    UC15 -[hidden] UC14
+    UC14 -[hidden] UC13
+    UC13 -[hidden] UC12
+
+    UC15 -[hidden] UC18
+    UC21 -[hidden] UC18
+
+    UC19 -[hidden] UC20
+    UC20 -[hidden] UC21
 }
 
 @enduml
