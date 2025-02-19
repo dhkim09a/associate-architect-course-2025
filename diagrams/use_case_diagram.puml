@@ -48,26 +48,26 @@ package "LVC (시스템)" {
     User --> UC11
     User --> UC22
     
-    Admin --> UC12
-    Admin --> UC13
-    Admin --> UC14
-    Admin --> UC15
+    Admin -down-> UC12
+    Admin -down-> UC13
+    Admin -down-> UC14
+    Admin -down-> UC15
 
-    Regulator --> UC18
+    Regulator --up-> UC18
 
-    Developer --> UC19
-    Developer --> UC20
-    Developer --> UC21
+    Developer --up-> UC19
+    Developer --up-> UC20
+    Developer --up-> UC21
 
-    UC5 --> PayProvider
-    UC6 --> PayProvider
+    UC5 --down-> PayProvider
+    UC6 --down-> PayProvider
 
-    UC2 --> AdProvider
+    UC2 --down-> AdProvider
     
     UC9 ..> UC16 : "<<include>>"
     UC10 ..> UC16 : "<<include>>"
     UC11 ..> UC17 : "<<include>>"
-    UC17 ..|> UC12 : "<<extend>>"
+    UC17 .up.|> UC12 : "<<extend>>"
 }
 
 @enduml
