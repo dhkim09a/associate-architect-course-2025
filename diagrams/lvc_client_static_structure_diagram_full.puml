@@ -1,0 +1,188 @@
+@startuml
+
+left to right direction
+skinparam linetype ortho
+
+allowmixing
+
+title LVC Client
+
+
+' External Interfaces
+
+' Server Interfaces
+
+package "<<node>> LVC Server" {
+  interface IAuthHandler {
+    + login(id: String, pw: String): boolean
+  }
+  interface IServerSideFlEngine {
+    + getLatestModelVersion(modelName: String): String
+    + getModel(modelName: String, version: String): Model
+    + updatedLocalModel(model: Model, modelName: String, baseVersion: String): boolean
+  }
+  interface IRandomChatMatcher {
+    + findRandomPeer(): Ipv4Address
+  }
+  interface IVoCHandler {
+    + recordUserVoc(id: String, comment: String): boolean
+    + warnMalUserPrediction(id: String): boolean
+  }
+}
+
+together {
+  interface ILvcClient {
+    + blockUser(id: String): boolean
+  }
+  interface IVChatRequestHandler {
+    + startVChat(): boolean
+  }
+  interface INetStreamSource
+}
+
+package "<<node>> LVC Client" {
+
+  interface IOnDeviceMLEngine {
+    + trainBinaryClassifier(curModel: Model, trainingData: List<Pair<Feature, String>>, targetLabels: List<String>): Model
+  }
+  interface ICrypto {
+  }
+  interface ICamera
+
+  package "<<layer>> Device Layer" {
+    package "Dispatcher Package" {
+        component DispatcherClient
+        component LvcServerAddressCache
+    }
+  }
+  
+  together {
+    interface IDispatcherClient {
+      + getLvcServerAddress(): Ipv4Address
+    }
+    DispatcherClient -() IDispatcherClient
+  }
+  
+  
+  package "<<layer>> Application Layer" {
+    interface IVChatStreamManager {
+      + startStream(peer: Ipv4Address): boolean
+      + getCurrentPeerId(): String
+      + stopCurrentStream(): boolean
+    }
+    interface IMlManager {
+      + getLatestModelVersion(modelName: String): String
+      + getModel(modelName: String, version: String): Model
+      + addTrainingData(modelName: String, labeledFeatures: List<Pair<Feature, String>>)
+      + scheduleTrainingBinaryClassifier(modelName: String, targetLabels: List<String>): boolean
+    }
+
+    package "Stream Package" {
+      component VChatStreamManager
+      component StreamEventNotifier
+      
+      component CamStreamSource
+      component NetStreamSource
+      ICrypto )- NetStreamSource
+      
+      component CamStreamSink
+      component NetStreamSink
+  
+      component CamFilterFeature
+      component GramCorrFeature
+  		component TopicSuggFeature
+  		component XlationFeature
+  		component WarnMalUserFeature
+  '		component SummaryFeature
+  
+  '		interface IPullFilter
+  
+  		ICamera )- CamStreamSource
+  		CamStreamSource -0)- CamFilterFeature : IPullFilter
+  		CamFilterFeature -0)- GramCorrFeature : IPullFilter
+  		GramCorrFeature -0)- CamStreamSink : IPullFilter
+  		INetStreamSource )- CamStreamSink
+  
+  		NetStreamSource -0)- XlationFeature : IPullFilter
+  		XlationFeature -0)- TopicSuggFeature : IPullFilter
+  		TopicSuggFeature -0)- WarnMalUserFeature : IPullFilter
+  		WarnMalUserFeature -0)- NetStreamSink : IPullFilter
+  
+      IVChatRequestHandler )- VChatStreamManager
+    }
+
+    
+    package "MachineLearning Package" {
+      component MlManager
+      database FeatureDB
+      database ModelStorage
+    }
+  
+    package "Control Package" {
+      component LvcClient
+      component VChatManager
+      component VChatRequestHandler
+      
+      IDispatcherClient )- VChatManager
+      IAuthHandler )- VChatManager
+      IRandomChatMatcher )- VChatManager
+      IVChatStreamManager )- VChatManager
+      
+      IVChatStreamManager )- VChatRequestHandler
+    }
+  
+    VChatStreamManager --() IVChatStreamManager
+  
+    MlManager --() IMlManager
+    
+    IMlManager )- WarnMalUserFeature
+    IVoCHandler )- WarnMalUserFeature
+    
+    IMlManager )- LvcClient
+    IVChatStreamManager )- LvcClient
+  }
+  
+  together {
+    interface ICamStreamSink {
+      + read():
+    }
+    CamStreamSink -() ICamStreamSink
+  
+    interface INetStreamSink
+    NetStreamSink -() INetStreamSink
+
+    interface IVChatManager {
+      + login(id: String, pw: String): boolean
+      + startRandomVChat(): boolean
+      + getFriendIds(): List<String>
+      + startVChat(id: String): boolean
+      + endCurrentVChat(): boolean
+    }
+    VChatManager -() IVChatManager
+    interface IStreamEventNotifier {
+      + addListener(listener: StreamEventListener): boolean
+    }
+    StreamEventNotifier -() IStreamEventNotifier
+  }
+  
+  package "<<layer>> Presentation Layer" {
+    component UserInterface
+  	INetStreamSink )- UserInterface
+  	ICamStreamSink )- UserInterface
+  	IVChatManager )- UserInterface
+  	IStreamEventNotifier )- UserInterface
+  }
+  
+  IServerSideFlEngine )- MlManager
+  IOnDeviceMLEngine )- MlManager
+}
+
+LvcClient -() ILvcClient
+VChatRequestHandler -() IVChatRequestHandler
+NetStreamSource -() INetStreamSource
+
+"<<node>> LVC Server" -( ILvcClient
+
+' "<<node>> LVC Client" ----[hidden]- "<<node>> LVC Server"
+
+@enduml
