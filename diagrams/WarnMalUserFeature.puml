@@ -1,0 +1,12 @@
+@startuml WarnMalUserFeature
+
+interface IPullFilter {
+    + registerDataListener(listener: Callback): boolean
+    + read(size: Int): Buffer
+}
+
+class WarnMalUserFeature implements IPullFilter {
+    
+}
+
+@enduml

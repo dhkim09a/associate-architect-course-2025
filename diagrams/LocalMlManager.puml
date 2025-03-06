@@ -1,0 +1,63 @@
+@startuml LocalMLManager
+
+interface IOnDeviceMLEngine
+
+interface IFLManager
+
+interface ILocalMLManager {
+    + getLatestModelVersion(modelName: String): String
+    + getModel(modelName: String, version: String): Model
+    + addTrainingData(modelName: String, labeledFeatures: List<Pair<Feature, String>>)
+    + scheduleTrainingBinaryClassifier(modelName: String, targetLabels: List<String>): boolean
+}
+
+class LocalMLManager implements ILocalMLManager
+
+class DeviceChargingListener {
+    - isCharging: boolean
+    - taskQueue: FLTaskQueue
+    + onChargeBegin(): void
+    + onChargeEnd(): void
+}
+
+class FLTaskQueue {
+    + enqueue(task: IFLTask): boolean
+    + dequeue(): IFLTask
+}
+
+interface IFLTask {
+    + run(): boolean
+}
+
+class GlobalModelSyncTask implements IFLTask
+
+class LocalModelUpdateTask implements IFLTask
+
+class Feature <<datatype>> {
+    + dimension: int
+    + vector: List<float>
+}
+
+class TrainingDB {
+
+}
+
+class ModelDB {
+    + listModels(): List<Pair<String, String>>
+    + getModel(name: String, version: String): Model
+}
+
+class Model {
+
+}
+
+FLTaskQueue "1" o- "*" IFLTask
+
+LocalMLManager "1" *-- "1" FLTaskQueue
+
+LocalMLManager "1" *-- "1" DeviceChargingListener
+
+DeviceChargingListener o- FLTaskQueue
+
+
+@enduml

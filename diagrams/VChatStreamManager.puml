@@ -1,0 +1,9 @@
+@startuml VChatStreamManager
+
+interface IVChatStreamManager {
+	+ startStream(peer: Ipv4Address): boolean
+	+ getCurrentPeerId(): String
+	+ stopCurrentStream(): boolean
+}
+
+@enduml
