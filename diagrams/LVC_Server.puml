@@ -1,0 +1,103 @@
+@startuml
+
+left to right direction
+' skinparam linetype ortho
+
+title LVC Server
+
+together {
+' LVC Server Interfaces
+  interface IAuthHandler
+  interface IFLManager
+  interface IRandomUserMatcher
+  interface IVoCHandler
+  interface IUserBanNotifier
+  interface ISubscriptionManager
+  interface IVChatActivityListener
+
+  interface IVoCExporter
+  interface IUserAdmin
+}
+
+package "Payment Service" <<external>> {
+  interface IPaymentService
+}
+
+package "Dispatcher Server" <<node>> {
+  interface IDispatcherServer
+  interface ILvcServerHealthMonitor
+}
+
+package "LVC Server" <<node>> {
+  together {
+    interface IDispatcherClient
+    interface IAccountConfigManager
+  }
+  
+  package "Dispatcher Package" {
+    component DispatcherClient
+    component LvcServerAddressCache
+    
+    IDispatcherServer )-up- DispatcherClient
+  }
+  
+  package "Account Package" {
+    component AuthHandler
+    database AccountDB
+    component AccountDBSynchronizer
+    component AccountConfigManager
+    
+    IDispatcherClient )-up- AccountDBSynchronizer
+  }
+  
+  package "Operation Package" {
+    component VoCManager
+    component LoadObserver
+    database VoCDB
+    component UserAdmin
+    component UserStatsMonitor
+    database VChatActivityStatsDB
+    
+    ILvcServerHealthMonitor )-- LoadObserver
+    IAccountConfigManager )-- UserAdmin
+  }
+  
+  package "Subscription Package" {
+    component SubscriptionManager
+    component PaymentHandler
+    
+    IPaymentService )-- PaymentHandler
+    IAccountConfigManager )-- SubscriptionManager
+  }
+
+  package "VChat Package" {
+    component RandomUserMatcher
+
+    IDispatcherClient )-- RandomUserMatcher
+  }
+  
+  package "FederatedLearning Package" {
+    component FLManager
+    database ModelStorage
+    component ModelAggregator
+    component ModelSynchronizer
+    
+    IDispatcherClient )-- ModelSynchronizer
+  }
+
+  DispatcherClient --() IDispatcherClient
+  AccountConfigManager --() IAccountConfigManager
+}
+
+AuthHandler -() IAuthHandler
+VoCManager --() IVoCHandler
+VoCManager -() IVoCExporter
+
+SubscriptionManager -() ISubscriptionManager
+RandomUserMatcher -() IRandomUserMatcher
+UserAdmin --() IUserAdmin
+UserAdmin -() IUserBanNotifier
+UserStatsMonitor -() IVChatActivityListener
+FLManager -() IFLManager
+
+@enduml

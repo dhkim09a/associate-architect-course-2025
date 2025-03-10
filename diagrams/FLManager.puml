@@ -1,0 +1,198 @@
+@startuml
+
+left to right direction
+
+frame "LVC Server - FederatedLearning Package" {
+	component FLManager
+	
+	FLManager --() IFLManager
+}
+
+@enduml
+
+@startuml FLManager
+
+skinparam linetype ortho
+hide stereotype
+
+' Override the style only for packages with the <<Annotation>> stereotype
+skinparam package<<Annotation>> {
+    BorderColor red
+    FontColor red
+}
+
+package "FLManager Package" {
+
+    ' Interface defining the operations FLManager must provide
+    interface IFLManager {
+        + getLatestModelVersion(modelName: String): String
+        + getModel(modelName: String, version: String): Model
+        + collectLocalModel(model: Model, modelName: String, baseVersion: String): boolean
+        + executeFLProcess(modelName: String): boolean
+    }
+
+    ' Concrete FLManager which implements IFLManager and uses FederatedLearningFlow
+    class FLManager implements IFLManager {
+        - flFlows: Dict<String, FederatedLearningFlow>
+
+        + getLatestModelVersion(modelName: String): String
+        + getModel(modelName: String, version: String): Model
+        + collectLocalModel(model: Model, modelName: String, baseVersion: String): boolean
+        + executeFLProcess(modelName: String): boolean
+    }
+
+    class ModelStorage {
+        + getModels(name: String, version: String): List<Model>
+        + storeModel(name: String, version: String, model: Model): boolean
+    }
+
+    package "Strategy - Strategy Pattern" <<Annotation>> {
+
+    interface IAggStrategy {
+        + aggregate(localModels: List<Model>): Model
+    }
+
+    }
+
+    package "Concrete Strategies - Strategy Pattern" <<Annotation>> {
+
+    class FedAvgAggStrategy {
+        + aggregate(localModels: List<Model>): Model
+    }
+
+    class FedProxAggStrategy {
+        + aggregate(localModels: List<Model>): Model
+    }
+
+    class FedOptAggStrategy {
+        + aggregate(localModels: List<Model>): Model
+    }
+
+    }
+
+    package "Context, Client - Strategy Pattern, Abstract Class - Template Method Pattern" <<Annotation>> {
+
+    ' Abstract class defining the Template Method for the federated learning process
+    abstract class FederatedLearningFlow {
+        - modelName: String
+        - aggStrategy: IAggStrategy
+        - modelDB: ModelStorage
+
+        - clientSelection(modelDB: ModelStorage): List<Model>
+        - aggregate(localModels: List<Model>): Model
+        - convergenceCheck(model: Model): boolean
+        + runFLProcess(): boolean
+    }
+
+    }
+
+    package "Concrete Classes - Template Method Pattern" <<Annotation>> {
+
+    ' Concrete implementations of FederatedLearningFlow
+    class BgRemovalFLFlow {
+        - clientSelection(modelDB: ModelStorage): List<Model>
+        - convergenceCheck(model: Model): boolean
+        + runFLProcess(): boolean
+    }
+
+    class SttFLFlow {
+        - clientSelection(modelDB: ModelStorage): List<Model>
+        - convergenceCheck(model: Model): boolean
+        + runFLProcess(): boolean
+    }
+
+    class WarnMalContentFLFlow {
+        - clientSelection(modelDB: ModelStorage): List<Model>
+        - convergenceCheck(model: Model): boolean
+        + runFLProcess(): boolean
+    }
+
+    }
+
+    ' Inheritance
+    FederatedLearningFlow <|-- BgRemovalFLFlow
+    FederatedLearningFlow <|-- SttFLFlow
+    FederatedLearningFlow <|-- WarnMalContentFLFlow
+
+    ' Realization
+    IAggStrategy <|.. FedAvgAggStrategy
+    IAggStrategy <|.. FedProxAggStrategy
+    IAggStrategy <|.. FedOptAggStrategy
+
+    ' Aggregations
+    FederatedLearningFlow "1..*" o--> "1" IAggStrategy
+    FederatedLearningFlow "*" o-> "1" ModelStorage
+
+    ' Compositions
+    FLManager "1" *--> "*" FederatedLearningFlow
+    FLManager "1" *--> "1" ModelStorage
+
+}
+
+@enduml
+
+@startuml executeFLProcess
+
+participant MLOpsController
+
+box FLManager Package
+
+participant FLManager
+participant WarnMalContentFLFlow
+participant FedAvgAggStrategy
+participant ModelStorage
+
+end box
+
+MLOpsController -> FLManager: S1. executeFLProcess("MalContentClassifier")
+activate FLManager
+
+FLManager -> FLManager: S2. flow = flFlows.get("MalContentClassifier")
+
+FLManager -> WarnMalContentFLFlow: S3. runFLProcess()
+activate WarnMalContentFLFlow
+
+WarnMalContentFLFlow -> WarnMalContentFLFlow: S4. clientSelection(modelDB)
+activate WarnMalContentFLFlow
+
+WarnMalContentFLFlow -> ModelStorage: S5. getModels("MalContentClassifier", ">1.0")
+activate ModelStorage
+
+WarnMalContentFLFlow <<-- ModelStorage: S6. localModels
+deactivate ModelStorage
+
+deactivate WarnMalContentFLFlow
+
+WarnMalContentFLFlow -> WarnMalContentFLFlow: S7. aggregate(localModels)
+activate WarnMalContentFLFlow
+
+WarnMalContentFLFlow -> FedAvgAggStrategy: S8. aggregate(localModels)
+activate FedAvgAggStrategy
+
+WarnMalContentFLFlow <<-- FedAvgAggStrategy: S9. newGlobalModel
+deactivate FedAvgAggStrategy
+
+deactivate WarnMalContentFLFlow
+
+WarnMalContentFLFlow -> WarnMalContentFLFlow: S10. result = convergenceCheck(newGlobalModel)
+activate WarnMalContentFLFlow
+
+deactivate WarnMalContentFLFlow
+
+opt result == true
+
+WarnMalContentFLFlow -> ModelStorage: S11. storeModel("MalContentClassifier", "2.0", newGlobalModel)
+activate ModelStorage
+
+WarnMalContentFLFlow <<-- ModelStorage: S12. result
+deactivate ModelStorage
+
+end opt
+
+FLManager <<-- WarnMalContentFLFlow: S13. result
+deactivate WarnMalContentFLFlow
+
+MLOpsController <<-- FLManager: S14. result
+deactivate FLManager
+
+@enduml

@@ -1,0 +1,72 @@
+@startuml
+
+left to right direction
+skinparam linetype ortho
+
+title Operation Server
+
+interface IOperatorConsole
+
+package "LVC Server" <<node>> {
+  interface IVoCExporter
+  interface IUserAdmin
+  interface IFLManager
+}
+
+package "Dispatcher Server" <<node>> {
+  interface IDispatcherServer
+  interface ILvcServerHealthMonitor
+}
+
+package "Operation Server" <<node>> {
+  interface IDispatcherClient
+  interface IGlobalConfSynchronizer
+  interface ILvcServerHealth
+  interface IUserActivityStats
+  interface ILvcServerFailureNotifier
+
+  package "Dispatcher Package" {
+    component DispatcherClient
+    component LvcServerAddressCache
+    
+    IDispatcherServer )- DispatcherClient
+  }
+  
+  package "UI Package" {
+    component OperatorWebUI
+  }
+
+  package "Control Package" {
+    component GlobalConfSynchronizer
+    component MLOpsController
+  }
+  
+  package "Monitor Package" {
+    component LvcServerMonitor
+    component VoCCollector
+    component UserActivityMonitor
+  }
+  
+  IUserAdmin )- GlobalConfSynchronizer
+  IDispatcherClient )- GlobalConfSynchronizer
+  ILvcServerHealthMonitor )- LvcServerMonitor
+  IDispatcherClient )- VoCCollector
+  IDispatcherClient )- UserActivityMonitor
+  IVoCExporter )- VoCCollector
+  IUserAdmin )- UserActivityMonitor
+  IGlobalConfSynchronizer )- OperatorWebUI
+  ILvcServerHealth )- OperatorWebUI
+  IUserActivityStats )- OperatorWebUI
+  ILvcServerFailureNotifier )- OperatorWebUI
+  IFLManager )- MLOpsController
+
+  DispatcherClient --() IDispatcherClient
+  GlobalConfSynchronizer --() IGlobalConfSynchronizer
+  LvcServerMonitor --() ILvcServerHealth
+  LvcServerMonitor --() ILvcServerFailureNotifier
+  UserActivityMonitor --() IUserActivityStats
+}
+
+OperatorWebUI -() IOperatorConsole
+
+@enduml

@@ -1,12 +1,245 @@
-@startuml WarnMalUserFeature
+@startuml WarnMalUserFeature Package
+
+left to right direction
+
+frame "LVC Client - Stream Package" {
+	component WarnMalUserFeature
+
+    IOnDeviceMLEngine )-- WarnMalUserFeature
+    ILocalMLManager )-- WarnMalUserFeature
+    IVoCHandler )-- WarnMalUserFeature
+    WarnMalUserFeature --() IPullFilter
+}
+
+@enduml
+
+@startuml WarnMalUserFeature Class
+
+' skinparam linetype ortho
+hide stereotype
+
+' Override the style only for packages with the <<Annotation>> stereotype
+skinparam package<<Annotation>> {
+    BorderColor red
+    FontColor red
+}
 
 interface IPullFilter {
-    + registerDataListener(listener: Callback): boolean
-    + read(size: Int): Buffer
+  + registerDataListener(listener: Callback): boolean
+  + read(size: Int): Buffer
 }
 
-class WarnMalUserFeature implements IPullFilter {
-    
+package "WarnMalUserFeature Package" as PWarnMalUserFeature {
+    ' Define the base interface for pull filters
+
+    package "Component - Decorator Pattern" <<Annotation>> {
+
+    interface IMalUserAction {
+        + onMalUserDetection(): void
+    }
+
+    }
+
+    package "Base Decorator - Decorator Pattern" <<Annotation>> {
+
+    ' Abstract decorator implementing the same interface and holding a reference to an IPullFilter
+    abstract class MalUserActionDecorator {
+        - wrappee: IMalUserAction
+        + MalUserActionDecorator(wrappee: IMalUserAction)
+        + onMalUserDetection(): void
+    }
+
+    }
+
+    package "Concrete Decorators - Decorator Pattern" <<Annotation>> {
+
+    ' Concrete decorator that adds reporting functionality
+    class WarnUserActionDecorator {
+        - warnUser(): void
+        + onMalUserDetection(): void
+    }
+
+    class WarnOpsActionDecorator {
+        + onMalUserDetection(): void
+    }
+
+    class WarnParentActionDecorator {
+        - warnParent(): void
+        + onMalUserDetection(): void
+    }
+
+    }
+
+    class FeatureExtractor {
+        + extractFeatures(data: Buffer): List<Feature>
+    }
+
+    class MalContentDetector {
+        - model: Model
+        + detectMaliciousContent(features: List<Feature>): boolean
+    }
+
+    class MalUserActionConfigurator {
+        + createMalUserAction(config: String): IMalUserAction
+    }
+
+    ' The original component that performs malicious conversation detection
+    class WarnMalUserFeature implements .IPullFilter {
+        - action: IMalUserAction
+        + registerDataListener(listener: Callback): boolean
+        + read(size: Int): Buffer
+    }
+
+    ' Inheritance
+    MalUserActionDecorator <|-- WarnUserActionDecorator
+    MalUserActionDecorator <|-- WarnOpsActionDecorator
+    MalUserActionDecorator <|-- WarnParentActionDecorator
+
+    ' Realization
+    IMalUserAction <|.. MalUserActionDecorator
+
+    ' Dependency
+    MalUserActionConfigurator ..> WarnUserActionDecorator
+    MalUserActionConfigurator ..> WarnOpsActionDecorator
+    MalUserActionConfigurator ..> WarnParentActionDecorator
+
+    ' Aggregation
+    MalUserActionDecorator "0..1" o--> "0..1" IMalUserAction
+    WarnMalUserFeature "1" o-> "0..1" IMalUserAction
+
+    ' Composition
+    WarnMalUserFeature "1" *--> "1" FeatureExtractor
+    WarnMalUserFeature "1" *--> "1" MalContentDetector
+    WarnMalUserFeature "1" *--> "1" MalUserActionConfigurator
+
 }
+
+@enduml
+
+@startuml notifyNewData
+
+participant TopicSuggFeature
+
+box WarnMalUserFeature Package
+
+participant WarnMalUserFeature
+participant MalUserActionConfigurator
+participant FeatureExtractor
+participant MalContentDetector
+
+participant WarnParentActionDecorator
+participant WarnUserActionDecorator
+participant WarnOpsActionDecorator
+
+end box
+
+participant ILocalMLManager
+participant IOnDeviceMLEngine
+participant IVoCHandler
+
+participant NetStreamSink
+
+TopicSuggFeature ->> WarnMalUserFeature: S1. notifyNewData()
+activate WarnMalUserFeature
+
+WarnMalUserFeature -> TopicSuggFeature: S2. read(size)
+activate TopicSuggFeature
+
+WarnMalUserFeature <<-- TopicSuggFeature: S3. video_audio_data
+deactivate TopicSuggFeature
+
+WarnMalUserFeature -> FeatureExtractor: S4. extractFeatures(video_audio_data)
+activate FeatureExtractor
+
+WarnMalUserFeature <<-- FeatureExtractor: S5. features
+deactivate FeatureExtractor
+
+WarnMalUserFeature -> ILocalMLManager: S6. addTrainingData("MalContentClassifier", Pair<userName, features>)
+activate ILocalMLManager
+
+WarnMalUserFeature <<-- ILocalMLManager: S7. result
+deactivate ILocalMLManager
+
+WarnMalUserFeature -> MalContentDetector: S8. detectMaliciousContent(features)
+activate MalContentDetector
+
+opt model == null
+
+MalContentDetector -> ILocalMLManager: S9. getLatestModelVersion("MalContentClassifier")
+activate ILocalMLManager
+
+MalContentDetector <<-- ILocalMLManager: S10. version
+deactivate ILocalMLManager
+
+MalContentDetector -> ILocalMLManager: S11. getModel("MalContentClassifier", version)
+activate ILocalMLManager
+
+MalContentDetector <<-- ILocalMLManager: S12. model
+deactivate ILocalMLManager
+
+end opt
+
+MalContentDetector -> IOnDeviceMLEngine: S13. inference(model, features)
+activate IOnDeviceMLEngine
+
+MalContentDetector <<-- IOnDeviceMLEngine: S14. result
+deactivate IOnDeviceMLEngine
+
+WarnMalUserFeature <<-- MalContentDetector: S15. result
+deactivate MalContentDetector
+
+opt result == true
+
+opt action == null
+
+WarnMalUserFeature -> MalUserActionConfigurator: S16. createMalUserAction(\n  "CONF_ALL")
+activate MalUserActionConfigurator
+
+create WarnOpsActionDecorator
+MalUserActionConfigurator -> WarnOpsActionDecorator: S17. action = WarnOpsActionDecorator(null)
+
+create WarnUserActionDecorator
+MalUserActionConfigurator -> WarnUserActionDecorator: S18. action = WarnUserActionDecorator(action)
+
+create WarnParentActionDecorator
+MalUserActionConfigurator -> WarnParentActionDecorator: S19. action = WarnParentActionDecorator(action)
+
+WarnMalUserFeature <<-- MalUserActionConfigurator: S20. action
+
+end opt
+
+WarnMalUserFeature -> WarnParentActionDecorator: S21. onMalUserDetection()
+activate WarnParentActionDecorator
+
+WarnParentActionDecorator -> WarnParentActionDecorator: S22. warnParent()
+
+WarnParentActionDecorator -> WarnUserActionDecorator: S23. onMalUserDetection()
+activate WarnUserActionDecorator
+
+WarnUserActionDecorator -> WarnUserActionDecorator: S24. warnUser()
+
+WarnUserActionDecorator -> WarnOpsActionDecorator: S25. onMalUserDetection()
+activate WarnOpsActionDecorator
+
+WarnOpsActionDecorator -> IVoCHandler: S26. openVoC(TYPE_MAL_USER)
+activate IVoCHandler
+
+WarnOpsActionDecorator <<-- IVoCHandler: S27. result
+deactivate IVoCHandler
+
+WarnUserActionDecorator <<-- WarnOpsActionDecorator: S28. 
+deactivate WarnOpsActionDecorator
+
+WarnParentActionDecorator <<-- WarnUserActionDecorator: S29. 
+deactivate WarnUserActionDecorator
+
+WarnMalUserFeature <<-- WarnParentActionDecorator: S30. 
+deactivate WarnParentActionDecorator
+
+end opt
+
+WarnMalUserFeature ->> NetStreamSink: S31. notifyNewData()
+deactivate WarnMalUserFeature
+activate NetStreamSink
 
 @enduml

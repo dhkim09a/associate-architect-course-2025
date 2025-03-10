@@ -1,0 +1,161 @@
+@startuml
+
+title UC-17 비디오 챗 시작
+
+box "LVC Client"
+
+participant ":VChatManager" as VChatManager
+participant ":VChatStreamManager" as VChatStreamManager
+
+participant ":CamStreamSource" as CamStreamSource
+participant ":NetStreamSource" as NetStreamSource
+participant ":CamStreamSink" as CamStreamSink
+participant ":NetStreamSink" as NetStreamSink
+
+participant ":ClientUI" as ClientUI
+
+end box
+
+box "Peer's LVC Client"
+participant ":VChatRequestHandler" as PeerVChatRequestHandler
+participant ":VChatStreamManager" as PeerVChatStreamManager
+
+participant ":NetStreamSource" as PeerNetStreamSource
+participant ":CamStreamSink" as PeerCamStreamSink
+
+end box
+
+VChatManager ->> VChatStreamManager: S1. startStream(peer_addr)
+activate VChatStreamManager
+
+loop 5 times
+  VChatStreamManager -> PeerVChatRequestHandler: S2. startVChat()
+  activate PeerVChatRequestHandler
+  
+  PeerVChatRequestHandler ->> PeerVChatStreamManager: S3. startStream(addr)
+  activate PeerVChatStreamManager
+  
+  VChatStreamManager <<-- PeerVChatRequestHandler: S4. result
+  deactivate PeerVChatRequestHandler
+  
+  break result == success
+  end break
+  
+end loop
+
+break startVChat() fails eventually
+VChatStreamManager -->> VChatManager: S5. fail
+VChatManager ->> ClientUI: S6. notifyVChatFailure()
+end break
+
+ClientUI -> CamStreamSink: S7. registerDataListener(cam_listener)
+activate CamStreamSink
+
+CamStreamSink -> CamStreamSource: S8. registerDataListener(listener)
+activate CamStreamSource
+
+CamStreamSink <<-- CamStreamSource: S9. success
+deactivate CamStreamSource
+
+ClientUI <<-- CamStreamSink: S10. success
+deactivate CamStreamSink
+
+ClientUI -> NetStreamSink: S11. registerDataListener(net_listener)
+activate NetStreamSink
+
+NetStreamSink -> NetStreamSource: S12. registerDataListener(listener)
+activate NetStreamSource
+
+NetStreamSink <<-- NetStreamSource: S13. success
+deactivate NetStreamSource
+
+ClientUI <<-- NetStreamSink: S14. success
+deactivate NetStreamSink
+
+VChatStreamManager -> CamStreamSource: S15. startCamStream()
+activate CamStreamSource
+
+loop
+
+  par
+    
+    CamStreamSource ->> CamStreamSink: S16. notifyNewData()
+    activate CamStreamSink
+    
+    CamStreamSink -> CamStreamSource: S17. read()
+    activate CamStreamSource
+    
+    CamStreamSink <<-- CamStreamSource: S18. cam_data
+    deactivate CamStreamSource
+    
+    note right
+        다이어그램의 복잡도를 낮추기 위해 CamStreamSource - CamStreamSink 사이의 IPullFilter 들을 생략하였다.
+        CamStreamSource -> CamFilterFeature -> GramCorrFeature -> CamStreamSink 순으로 pipe-and-filter
+        구조가 구성되며 각 filter 사이에 S16 - S18 과 유사한 데이터 전달 과정이 반복된다.
+    end note
+
+    CamStreamSink ->> ClientUI: S19. notifyNewData()
+    activate ClientUI
+    
+    ClientUI -> CamStreamSink: S20. read()
+    activate CamStreamSink
+    
+    ClientUI <<-- CamStreamSink: S21. cam_data
+    deactivate CamStreamSink
+    
+    ClientUI -> ClientUI: S22. updateUI()
+    activate ClientUI
+    deactivate ClientUI
+    deactivate ClientUI
+    
+    CamStreamSink -> PeerNetStreamSource: S23. write(cam_data)
+    activate PeerNetStreamSource
+    
+    CamStreamSink <<-- PeerNetStreamSource: S24. success
+    deactivate PeerNetStreamSource
+    deactivate CamStreamSink
+  
+  else
+  
+    PeerCamStreamSink -> NetStreamSource: S25. write(peer_cam_data)
+    activate NetStreamSource
+    activate NetStreamSource
+    
+    PeerCamStreamSink <<-- NetStreamSource: S26. success
+    deactivate NetStreamSource
+    
+    NetStreamSource ->> NetStreamSink: S27. notifyNewData()
+    activate NetStreamSink
+    
+    NetStreamSink -> NetStreamSource: S28. read()
+    activate NetStreamSource
+    
+    NetStreamSink <<-- NetStreamSource: S29. cam_data
+    deactivate NetStreamSource
+
+    note right
+        다이어그램의 복잡도를 낮추기 위해 NetStreamSource - NetStreamSink 사이의 IPullFilter 들을 생략하였다.
+        NetStreamSource -> XlationFeature -> TopicSuggFeature -> WarnMalUserFeature -> NetStreamSink 순으로
+        pipe-and-filter 구조가 구성되며 각 filter 사이에 S27 - S29 와 유사한 데이터 전달 과정이 반복된다.
+    end note
+
+    NetStreamSink ->> ClientUI: S30. notifyNewData()
+    deactivate NetStreamSink
+    activate ClientUI
+    
+    ClientUI -> NetStreamSink: S31. read()
+    activate NetStreamSink
+    
+    ClientUI <<-- NetStreamSink: S32. cam_data
+    deactivate NetStreamSink
+    
+    ClientUI -> ClientUI: S33. updateUI()
+    activate ClientUI
+    deactivate ClientUI
+    deactivate ClientUI
+  
+  end par
+
+end loop
+
+@enduml

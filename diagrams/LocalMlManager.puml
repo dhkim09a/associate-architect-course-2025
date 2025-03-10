@@ -1,63 +1,300 @@
+@startuml
+
+left to right direction
+
+frame "LVC Client - MachineLearning Package" {
+    component LocalMLManager
+    LocalMLManager --() ILocalMLManager
+    IFLManager )-- LocalMLManager
+    IOnDeviceMLEngine )-- LocalMLManager
+    IPowerManager )-- LocalMLManager
+    IConnectivityManager )-- LocalMLManager
+}
+
+@enduml
+
 @startuml LocalMLManager
 
-interface IOnDeviceMLEngine
+skinparam linetype ortho
+hide stereotype
 
-interface IFLManager
+' interface IOnDeviceMLEngine
+' interface IFLManager
 
-interface ILocalMLManager {
-    + getLatestModelVersion(modelName: String): String
-    + getModel(modelName: String, version: String): Model
-    + addTrainingData(modelName: String, labeledFeatures: List<Pair<Feature, String>>)
-    + scheduleTrainingBinaryClassifier(modelName: String, targetLabels: List<String>): boolean
+' Override the style only for packages with the <<Annotation>> stereotype
+skinparam package<<Annotation>> {
+    BorderColor red
+    FontColor red
 }
 
-class LocalMLManager implements ILocalMLManager
+package PLocalMLManager as "LocalMLManager Package" {
 
-class DeviceChargingListener {
-    - isCharging: boolean
-    - taskQueue: FLTaskQueue
-    + onChargeBegin(): void
-    + onChargeEnd(): void
+    ' External interface provided by LocalMLManager
+    interface ILocalMLManager {
+        + getLatestModelVersion(modelName: String): String
+        + getModel(modelName: String, version: String): Model
+        + addTrainingData(modelName: String, labeledFeatures: Pair<String, List<Feature>>): boolean
+        + scheduleTrainingBinaryClassifier(modelName: String, targetLabels: List<String>): boolean
+    }
+
+    ' LocalMLManager acts as a Facade for ML operations
+    class LocalMLManager implements ILocalMLManager {
+        - trainingDB: TrainingDB
+        - modelDB: LocalModelDB
+        - taskEngine: FLTaskEngine
+        - isCharging: boolean
+        - isWifi: boolean
+        + getLatestModelVersion(modelName: String): String
+        + getModel(modelName: String, version: String): Model
+        + addTrainingData(modelName: String, labeledFeatures: List<Pair<Feature, String>>)
+        + scheduleTrainingBinaryClassifier(modelName: String, targetLabels: List<String>): boolean
+    }
+
+    ' Listener for device charging events to trigger training tasks
+    together {
+    class DeviceChargingListener {
+        + onChargeBegin(): void
+        + onChargeEnd(): void
+    }
+    class WifiConnectListener {
+        + onWifiConnect(): void
+        + onWifiDisconnect(): void
+    }
+    }
+
+    ' Queue that holds tasks (using the Command Pattern)
+    class FLTaskQueue {
+        - tasks: List<FLTask>
+        + enqueue(task: FLTask): boolean
+        + dequeueWithCondition(condFlags: int): FLTask
+    }
+
+    ' Design pattern annotation with package boxes
+    package "Command - Command Pattern" <<Annotation>> {
+
+    ' Command interface for FL tasks
+    abstract FLTask {
+        + condFlags: int
+        + FLTask(condFlags: int)
+        + execute(): boolean
+    }
+
+    }
+
+    ' Design pattern annotation with package boxes
+    package "Invoker - Command Pattern" <<Annotation>> {
+
+    class FLTaskEngine {
+        - taskQueue: FLTaskQueue
+
+        - scheduleSynchronizingModelDB(): void
+        + scheduleTrainingBinaryClassifier(modelName: String, targetLabels: List<String>): boolean
+        + executeATask(condFlags: int): boolean
+    }
+
+    }
+
+    ' Design pattern annotation with package boxes
+    package "Concrete Command - Command Pattern" <<Annotation>> {
+
+    ' Concrete tasks for global model synchronization and local model update
+    class GlobalModelDownloadTask {
+        - modelDB: LocalModelDB
+        - targetModelName: String
+        - targetModelVersion: String
+        + execute(): boolean
+    }
+    class LocalBinaryClassifierModelUpdateTask {
+        - modelDB: LocalModelDB
+        - trainingDB: TrainingDB
+        - targetLabels: List<String>
+        - targetModelName: String
+        - targetModelVersion: String
+        + execute(): boolean
+    }
+    class LocalModelUploadTask {
+        - modelDB: LocalModelDB
+        - targetModelName: String
+        - targetModelVersion: String
+        + execute(): boolean
+    }
+
+    }
+
+    ' Databases for training data and model files
+    class TrainingDB {
+        + getTrainingData(labels: List<String>): Feature
+        + storeTrainingData(data: Feature): void
+    }
+
+    class LocalModelDB {
+        + listModels(): List<Pair<String, String>>
+        + getModel(name: String, version: String): Model
+        + storeModel(name: String, version: String, model: Model): boolean
+    }
+
+    ' Inheritance
+    FLTask <|-- GlobalModelDownloadTask
+    FLTask <|-- LocalBinaryClassifierModelUpdateTask
+    FLTask <|-- LocalModelUploadTask
+
+    ' Dependency
+    FLTaskEngine ...> GlobalModelDownloadTask
+    FLTaskEngine ...> LocalModelUploadTask
+    FLTaskEngine ...> LocalBinaryClassifierModelUpdateTask
+
+    ' Aggregation
+    ' DeviceChargingListener "1" o- "1" FLTaskEngine
+    ' WifiConnectListener "1" o- "1" FLTaskEngine
+    FLTaskQueue "1" o-> "*" FLTask
+    LocalBinaryClassifierModelUpdateTask "1" o--> "1" TrainingDB
+    LocalBinaryClassifierModelUpdateTask "1" o--> "1" LocalModelDB
+    LocalModelUploadTask "1" o--> "1" LocalModelDB
+    GlobalModelDownloadTask "1" o--> "1" LocalModelDB
+
+    ' Composition
+    LocalMLManager "1" *--> "1" FLTaskEngine
+    LocalMLManager "1" *--> "1" DeviceChargingListener
+    LocalMLManager "1" *--> "1" WifiConnectListener
+    LocalMLManager "1" *--> "1" TrainingDB
+    LocalMLManager "1" *--> "1" LocalModelDB
+    FLTaskEngine "1" *--> "1" FLTaskQueue
 }
 
-class FLTaskQueue {
-    + enqueue(task: IFLTask): boolean
-    + dequeue(): IFLTask
-}
+@enduml
 
-interface IFLTask {
-    + run(): boolean
-}
+@startuml scheduleTrainingBinaryClassifier
 
-class GlobalModelSyncTask implements IFLTask
+participant UserBanHandler
 
-class LocalModelUpdateTask implements IFLTask
+box LocalMLManager Package
 
-class Feature <<datatype>> {
-    + dimension: int
-    + vector: List<float>
-}
+participant LocalMLManager
+participant FLTaskEngine
+participant LocalModelDB
+participant TrainingDB
+participant FLTaskQueue
+participant LocalBinaryClassifierModelUpdateTask
+participant LocalModelUploadTask
 
-class TrainingDB {
+end box
 
-}
+participant IOnDeviceMLEngine
+participant IFLManager
 
-class ModelDB {
-    + listModels(): List<Pair<String, String>>
-    + getModel(name: String, version: String): Model
-}
+UserBanHandler ->> LocalMLManager: S1. scheduleTrainingBinaryClassifier(\n  modelName, targetLabels)
+activate LocalMLManager
 
-class Model {
+LocalMLManager -> FLTaskEngine: S2. scheduleTrainingBinaryClassifier(\n  modelName, targetLabels)
+activate FLTaskEngine
 
-}
+FLTaskEngine -> LocalModelDB: S3. listModels()
 
-FLTaskQueue "1" o- "*" IFLTask
+create LocalBinaryClassifierModelUpdateTask
+FLTaskEngine -> LocalBinaryClassifierModelUpdateTask: S4. trainingTask = LocalBinaryClassifierModelUpdateTask(\n  COND_CHARGING, modelDB, trainingDB, targetLabels,\n  targetModelName, targetModelVersion)
 
-LocalMLManager "1" *-- "1" FLTaskQueue
+FLTaskEngine -> FLTaskQueue: S5. enqueue(trainingTask)
+activate FLTaskQueue
 
-LocalMLManager "1" *-- "1" DeviceChargingListener
+FLTaskEngine <<-- FLTaskQueue: S6. result
+deactivate FLTaskQueue
 
-DeviceChargingListener o- FLTaskQueue
+LocalMLManager <<-- FLTaskEngine: S7. result
+deactivate FLTaskEngine
 
+break isCharging != true
+
+LocalMLManager -[hidden]-> LocalMLManager
+
+end break
+
+LocalMLManager -> FLTaskEngine: S8. executeATask(COND_CHARGING)
+activate FLTaskEngine
+
+FLTaskEngine -> FLTaskQueue: S9. dequeueWithCondition(COND_CHARGING)
+activate FLTaskQueue
+
+FLTaskEngine <<-- FLTaskQueue: S10. trainingTask
+deactivate FLTaskQueue
+
+FLTaskEngine -> LocalBinaryClassifierModelUpdateTask: S11. execute()
+activate LocalBinaryClassifierModelUpdateTask
+
+LocalBinaryClassifierModelUpdateTask -> LocalModelDB: S12. getModel(targetModelName, targetModelVersion)
+activate LocalModelDB
+
+LocalBinaryClassifierModelUpdateTask <<-- LocalModelDB: S13. model
+deactivate LocalModelDB
+
+LocalBinaryClassifierModelUpdateTask -> TrainingDB: S14. getTrainingData(targetLabels)
+activate TrainingDB
+
+LocalBinaryClassifierModelUpdateTask <<-- TrainingDB: S15. trainingData
+deactivate TrainingDB
+
+LocalBinaryClassifierModelUpdateTask -> IOnDeviceMLEngine: S16. train(model, trainingData)
+activate IOnDeviceMLEngine
+
+LocalBinaryClassifierModelUpdateTask <<-- IOnDeviceMLEngine: S17. newModel
+deactivate IOnDeviceMLEngine
+
+LocalBinaryClassifierModelUpdateTask -> LocalModelDB: S18. storeModel(targetModelName, newVersion, newModel)
+activate LocalModelDB
+
+LocalBinaryClassifierModelUpdateTask <<-- LocalModelDB: S19. result
+deactivate LocalModelDB
+
+FLTaskEngine <<-- LocalBinaryClassifierModelUpdateTask: S20. result
+deactivate LocalBinaryClassifierModelUpdateTask
+destroy LocalBinaryClassifierModelUpdateTask
+
+create LocalModelUploadTask
+FLTaskEngine -> LocalModelUploadTask: S21. uploadTask = LocalModelUploadTask(COND_WIFI, modelDB, targetModelName, newVersion)
+
+FLTaskEngine -> FLTaskQueue: S22. enqueue(uploadTask)
+activate FLTaskQueue
+
+FLTaskEngine <<-- FLTaskQueue: S23. result
+deactivate FLTaskQueue
+
+LocalMLManager <<-- FLTaskEngine: S24. result
+deactivate FLTaskEngine
+
+break isWifi != true
+
+LocalMLManager -[hidden]-> LocalMLManager
+
+end break
+
+LocalMLManager -> FLTaskEngine: S25. executeATask(COND_WIFI)
+activate FLTaskEngine
+
+FLTaskEngine -> FLTaskQueue: S26. dequeueWithCondition(COND_WIFI)
+activate FLTaskQueue
+
+FLTaskEngine <<-- FLTaskQueue: S27. uploadTask
+deactivate FLTaskQueue
+
+FLTaskEngine -> LocalModelUploadTask: S28. execute()
+activate LocalModelUploadTask
+
+LocalModelUploadTask -> LocalModelDB: S29. getModel(targetModelName, newVersion)
+activate LocalModelDB
+
+LocalModelUploadTask <<-- LocalModelDB: S30. newModel
+deactivate LocalModelDB
+
+LocalModelUploadTask -> IFLManager: S31. collectLocalModel(newModel,\n  targetModelName, newVersion)
+activate IFLManager
+
+LocalModelUploadTask <<-- IFLManager: S32. result
+deactivate IFLManager
+
+FLTaskEngine <<-- LocalModelUploadTask: S33. result
+deactivate LocalModelUploadTask
+destroy LocalModelUploadTask
+
+LocalMLManager <<-- FLTaskEngine: S34. result
+deactivate FLTaskEngine
 
 @enduml

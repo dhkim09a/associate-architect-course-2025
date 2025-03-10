@@ -1,0 +1,25 @@
+@startuml
+
+left to right direction
+' skinparam linetype ortho
+
+title Dispatcher Server
+
+
+' External Interfaces
+
+' Server Interfaces
+interface IDispatcherServer
+interface ILvcServerHealthMonitor
+
+package "Dispatcher Server" <<node>> {
+    package "Dispatcher Package" {
+        component DispatcherServer
+        database LvcServerAddressDB
+        
+        DispatcherServer --() IDispatcherServer
+        DispatcherServer --() ILvcServerHealthMonitor
+    }
+}
+
+@enduml

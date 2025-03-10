@@ -1,0 +1,158 @@
+@startuml
+
+' left to right direction
+skinparam linetype ortho
+
+title LVC Client
+
+
+' External Interfaces
+
+' Server Interfaces
+
+package "LVC Server" <<node>> {
+  interface IAuthHandler
+  interface IFLManager
+  interface IRandomUserMatcher
+  interface IVoCHandler
+  interface IUserBanNotifier
+  interface ISubscriptionManager
+  interface IVChatActivityListener
+
+  IAuthHandler -[hidden]- IVChatActivityListener
+  IVChatActivityListener -[hidden]- IRandomUserMatcher
+  IRandomUserMatcher -[hidden]- IUserBanNotifier
+  IUserBanNotifier -[hidden]- ISubscriptionManager
+  ISubscriptionManager -[hidden]- IVoCHandler
+  IVoCHandler -[hidden]- IFLManager
+}
+
+package "Dispatcher Server" <<node>> {
+  interface IDispatcherServer
+}
+
+interface IVChatRequestHandler
+interface INetStreamSource
+
+interface IAdsService
+
+package "LVC Client" <<node>> {
+
+  together {
+    interface IOnDeviceMLEngine
+    interface ICrypto
+    interface ICamera
+  }
+
+  interface IDispatcherClient
+
+  together {
+    interface ICamStreamSink
+    interface INetStreamSink
+    interface IVChatManager
+    interface IStreamEventNotifier
+  }
+
+    package "Dispatcher Package" {
+      component DispatcherClient
+      component LvcServerAddressCache
+    
+      DispatcherClient -( IDispatcherServer
+    }
+
+
+    interface IVChatStreamManager
+    interface ILocalMLManager
+
+    package "Stream Package" {
+      component VChatStreamManager
+      component StreamEventNotifier
+      
+      component CamStreamSource
+      component NetStreamSource
+      ICrypto )-up- NetStreamSource
+      
+      component CamStreamSink
+      component NetStreamSink
+  
+      component CamFilterFeature
+      component GramCorrFeature
+  		component TopicSuggFeature
+  		component XlationFeature
+  		component WarnMalUserFeature
+
+  		CamStreamSource --( ICamera
+  		CamFilterFeature -(0- CamStreamSource : IPullFilter
+  		GramCorrFeature  -(0- CamFilterFeature : IPullFilter
+  		CamStreamSink  -(0- GramCorrFeature : IPullFilter
+  		CamStreamSink  -( INetStreamSource
+  
+  		XlationFeature -0)- NetStreamSource : IPullFilter
+  		TopicSuggFeature -0)- XlationFeature : IPullFilter
+  		WarnMalUserFeature -0)- TopicSuggFeature : IPullFilter
+  		NetStreamSink -0)- WarnMalUserFeature : IPullFilter
+  
+      VChatStreamManager -up-( IVChatRequestHandler
+    }
+
+    
+    package "MachineLearning Package" {
+      component LocalMLManager
+      database FeatureDB
+      database ModelStorage
+    }
+  
+    package "Control Package" {
+      component VChatManager
+      component VChatRequestHandler
+      component SubscriptionController
+      component UserBanHandler
+      database UserConfigStorage
+      
+      IDispatcherClient )-up- VChatManager
+      IAuthHandler )- VChatManager
+      IRandomUserMatcher )- VChatManager
+      IVChatStreamManager )-up- VChatManager
+      IVoCHandler )- VChatManager
+      IVChatActivityListener )- VChatManager
+
+      IUserBanNotifier )- UserBanHandler
+      ILocalMLManager )-up- UserBanHandler
+
+      IVChatStreamManager )-up- VChatRequestHandler
+      
+      IVChatStreamManager )-up- SubscriptionController
+      ISubscriptionManager )- SubscriptionController
+      
+    }
+  
+    VChatStreamManager -up-() IVChatStreamManager
+  
+    LocalMLManager -up-() ILocalMLManager
+    
+    ILocalMLManager )- WarnMalUserFeature
+    IVoCHandler )- WarnMalUserFeature
+
+    component ClientUI
+  	INetStreamSink )-up- ClientUI
+  	ICamStreamSink )-up- ClientUI
+  	IVChatManager )-up- ClientUI
+  	IStreamEventNotifier )-up- ClientUI
+
+  DispatcherClient -up-() IDispatcherClient
+
+  CamStreamSink ---up-() ICamStreamSink
+  NetStreamSink ---up-() INetStreamSink
+  VChatManager -up-() IVChatManager
+  StreamEventNotifier ---up-() IStreamEventNotifier
+
+  IFLManager )-up- LocalMLManager
+  IOnDeviceMLEngine )-up- LocalMLManager
+}
+
+VChatRequestHandler --() IVChatRequestHandler
+NetStreamSource -up-() INetStreamSource
+
+IAdsService )-- ClientUI
+
+@enduml

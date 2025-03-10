@@ -1,0 +1,281 @@
+@startuml DD1_DA1
+
+title On-device AI
+
+node "LVC Server" as S {
+}
+
+node "LVC Client" as C1 {
+    [On-device AI Processing] as O1
+}
+
+node "LVC Client" as C2 {
+    [On-device AI Processing] as O2
+}
+
+S <--> C1: VChat Stream
+S <--> C2: VChat Stream
+
+@enduml
+
+@startuml DD1_DA2
+
+title Cloud AI
+
+node "LVC Server" as S {
+    [Cloud AI Processing]
+}
+
+node "LVC Client" as C1 {
+}
+
+node "LVC Client" as C2 {
+}
+
+S <--> C1: VChat Stream
+S <--> C2: VChat Stream
+
+@enduml
+
+@startuml DD1_DA3
+
+title P2P Streaming
+
+node "LVC Server" as S {
+}
+
+node "LVC Client" as C1 {
+}
+
+node "LVC Client" as C2 {
+}
+
+C1 <-> C2: VChat Stream
+
+S ..> C1: VChat Control
+S ..> C2: VChat Control
+
+@enduml
+
+@startuml DD1_DA4
+
+title Cloud-based Streaming
+
+node "LVC Server" as S {
+}
+
+node "LVC Client" as C1 {
+}
+
+node "LVC Client" as C2 {
+}
+
+S <--> C1: VChat Stream
+S <--> C2: VChat Stream
+
+@enduml
+
+@startuml DD2_DA1
+
+title Federated Learning
+
+node "LVC Server" as S {
+    [AI Model Aggregation] as A
+}
+
+node "LVC Client" as C1 {
+    [On-device AI Model Update] as O1
+}
+
+node "LVC Client" as C2 {
+    [On-device AI Model Update] as O2
+}
+
+A <-- O1: "Locally\nUpdated\nModel"
+A <-- O2: "Locally\nUpdated\nModel"
+
+A --> C1: "Aggregated\nGlobal Model"
+A --> C2: "Aggregated\nGlobal Model"
+
+@enduml
+
+@startuml DD2_DA2
+
+title Training on Cloud
+
+node "LVC Server" as S {
+    [AI Model Update] as A
+}
+
+node "LVC Client" as C1 {
+}
+
+node "LVC Client" as C2 {
+}
+
+A <-- C1: "VChat\nStream\nData"
+A <-- C2: "VChat\nStream\nData"
+
+A --> C1: "Updated\nGlobal Model"
+A --> C2: "Updated\nGlobal Model"
+
+@enduml
+
+@startuml DD3_DA1
+
+title Pipe and Filter
+
+component VChatFeature1
+component VChatFeature2
+component VChatFeature3
+
+DataSource -> VChatFeature1: VChat Stream
+VChatFeature1 -> VChatFeature2: VChat Stream
+VChatFeature2 -> VChatFeature3: VChat Stream
+VChatFeature3 -> DataSink: VChat Stream
+
+@enduml
+
+@startuml DD3_DA2
+
+title Monilithic Plugin Manager
+
+component PluginManager
+
+DataSource -> PluginManager: VChat Stream
+
+@enduml
+
+@startuml DD4_DA1
+
+title Dispatcher Style
+
+node "LVC Client" as C
+node "LVC Server" as S
+node "Dispatcher Server" as D
+
+D <-- C: "LVC Server\nAddress Request"
+D <-- S: "Registration"
+C -> S: "Connection"
+
+@enduml
+
+@startuml DD4_DA2
+
+title Broker Style
+
+node "LVC Client" as C
+node "LVC Server" as S
+node "LVC Reverse Proxy" as D
+
+D <-- C: "Connection"
+D -> S: "Connection"
+
+@enduml
+
+@startuml DD5_DA1
+
+title LVC Server Address Caching
+
+participant "LVC Client" as C
+participant "Dispatcher Server" as D
+participant "LVC Server" as S
+
+C -x D: LVC Server Address Request Failure
+C -> C: LVC Server Address Cache Lookup
+C -> S: Connection
+
+@enduml
+
+@startuml DD5_DA2
+
+title Directory Server Replication
+
+participant "LVC Client" as C
+participant "Dispatcher Server" as D1
+participant "Dispatcher Server Replica" as D2
+participant "LVC Server" as S
+
+C -x D1: LVC Server Address Request Failure
+C -> D2: LVC Server Address Request
+C -> S: Connection
+
+@enduml
+
+@startuml DD6_DA1
+
+skinparam linetype ortho
+
+title Replication
+
+node "LVC Client" as C
+node "LVC Server 1" as S1 {
+    [Account DB] as A1
+}
+node "LVC Server 2" as S2 {
+    [Account DB] as A2
+}
+node "LVC Server 3" as S3 {
+    [Account DB] as A3
+}
+
+S1 <-- C: "Login"
+A1 <-> A2: "Sync"
+A2 <-> A3: "Sync"
+
+@enduml
+
+@startuml DD6_DA2
+
+' skinparam linetype ortho
+
+title Shared Repository
+
+node "LVC Client" as C
+node "LVC Server 1" as S1
+node "LVC Server 2" as S2
+node "LVC Server 3" as S3
+database "Account DB" as A
+
+S1 <-- C: "Login"
+S1 --> A: "Read/Write"
+S2 --> A: "Read/Write"
+S3 --> A: "Read/Write"
+
+@enduml
+
+@startuml DD7_DA1
+
+' skinparam linetype ortho
+
+title Dedicated Operation Server
+
+actor "Operator's Browser" as U
+node "Operation Server" as O
+node "LVC Server 1" as S1
+node "LVC Server 2" as S2
+node "LVC Server 3" as S3
+
+U -> O: "Read Stats\nWrite Configs"
+O --> S1: "Read Stats\nWrite Configs"
+O --> S2: "Read Stats\nWrite Configs"
+O --> S3: "Read Stats\nWrite Configs"
+
+@enduml
+
+@startuml DD7_DA2
+
+' skinparam linetype ortho
+
+title Operation API from Each LVC Server
+
+actor "Operator's Browser" as U
+node "LVC Server 1" as S1
+node "LVC Server 2" as S2
+node "LVC Server 3" as S3
+
+U --> S1: "Read Stats\nWrite Configs"
+U --> S2: "Read Stats\nWrite Configs"
+U --> S3: "Read Stats\nWrite Configs"
+
+@enduml
